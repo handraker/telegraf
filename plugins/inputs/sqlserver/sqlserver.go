@@ -110,6 +110,7 @@ func initQueries(s *SQLServer) error {
 
 	// Decide if we want to run version 1 or version 2 queries
 	if s.QueryVersion == 2 {
+		queries["LogBackupSize"] = Query{Script: sqlLogBackupSizeV2, ResultByRow: false}
 		queries["PerformanceCounters"] = Query{Script: sqlPerformanceCountersV2, ResultByRow: true}
 		queries["WaitStatsCategorized"] = Query{Script: sqlWaitStatsCategorizedV2, ResultByRow: false}
 		queries["DatabaseIO"] = Query{Script: sqlDatabaseIOV2, ResultByRow: false}
@@ -396,6 +397,21 @@ OPTION(RECOMPILE);
 '
 
 EXEC(@SqlStatement)
+`
+
+const sqlLogBackupSizeV2 = `
+SET DEADLOCK_PRIORITY -10;
+
+DECLARE @TmpTable TABLE (
+    size NUMERIC
+)
+
+INSERT INTO @TmpTable EXEC sp_MSforeachdb 'USE [?]; SELECT log_space_in_bytes_since_last_backup FROM [?].[sys].[dm_db_log_space_usage]';
+
+SELECT 'sqlserver_expected_log_backup_size' AS [measurement]
+	,REPLACE(@@SERVERNAME,'\',':') AS [sql_instance]
+	,SUM(size) AS size
+FROM @TmpTable
 `
 
 // Conditional check based on Azure SQL DB OR On-prem SQL Server
