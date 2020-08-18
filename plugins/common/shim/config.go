@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/BurntSushi/toml"
@@ -146,16 +147,23 @@ func createPluginsWithTomlConfig(md toml.MetaData, conf config) (loadedConfig, e
 // have registered themselves with the registry. This makes loading plugins
 // without having to define a config dead easy.
 func DefaultImportedPlugins() (config, error) {
-	conf := config{}
+	conf := config{
+		Inputs:     map[string][]toml.Primitive{},
+		Processors: map[string][]toml.Primitive{},
+		Outputs:    map[string][]toml.Primitive{},
+	}
 	for name := range inputs.Inputs {
+		log.Println("No config found. Loading default config for plugin", name)
 		conf.Inputs[name] = []toml.Primitive{}
 		return conf, nil
 	}
 	for name := range processors.Processors {
+		log.Println("No config found. Loading default config for plugin", name)
 		conf.Processors[name] = []toml.Primitive{}
 		return conf, nil
 	}
 	for name := range outputs.Outputs {
+		log.Println("No config found. Loading default config for plugin", name)
 		conf.Outputs[name] = []toml.Primitive{}
 		return conf, nil
 	}
