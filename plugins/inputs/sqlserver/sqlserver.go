@@ -181,7 +181,7 @@ func (s *SQLServer) Gather(acc telegraf.Accumulator) error {
 
 func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
 	var fields = make(map[string]interface{})
-	var tags = make(map[string]string{})
+	var tags = make(map[string]string)
 
 	conn, err := sql.Open("mssql", server)
 	if err != nil {
@@ -193,6 +193,7 @@ func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
 		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
 	}
 	defer conn.Close()
+	return nil
 }
 
 func (s *SQLServer) gatherServer(server string, query Query, acc telegraf.Accumulator) error {
