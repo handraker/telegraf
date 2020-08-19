@@ -165,6 +165,7 @@ func (s *SQLServer) Gather(acc telegraf.Accumulator) error {
 	var wg sync.WaitGroup
 
 	for _, serv := range s.Servers {
+		acc.AddError(s.checkServer(serv, acc))
 		for _, query := range s.queries {
 			wg.Add(1)
 			go func(serv string, query Query) {
@@ -176,6 +177,22 @@ func (s *SQLServer) Gather(acc telegraf.Accumulator) error {
 
 	wg.Wait()
 	return nil
+}
+
+func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
+	var fields = make(map[string]interface{})
+	var tags = make(map[string]string{})
+
+	conn, err := sql.Open("mssql", server)
+	if err != nil {
+		fields["value"] = "0"
+		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
+		return err
+	} else {
+		fields["value"] = "1"
+		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
+	}
+	defer conn.Close()
 }
 
 func (s *SQLServer) gatherServer(server string, query Query, acc telegraf.Accumulator) error {
