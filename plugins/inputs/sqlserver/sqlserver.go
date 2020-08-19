@@ -193,6 +193,7 @@ func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
 		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
 	}
 	defer conn.Close()
+	return nil
 }
 
 func (s *SQLServer) gatherServer(server string, query Query, acc telegraf.Accumulator) error {
