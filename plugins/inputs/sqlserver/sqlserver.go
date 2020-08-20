@@ -2,6 +2,7 @@ package sqlserver
 
 import (
 	"database/sql"
+	"context"
 	"sync"
 	"time"
 
@@ -183,7 +184,15 @@ func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
 	var fields = make(map[string]interface{})
 	var tags = make(map[string]string)
 
-	conn, err := sql.Open("mssql", server)
+	db, err := sql.Open("mssql", server)
+	if err != nil {
+		fields["value"] = "0"
+		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
+		return err
+	} 
+
+	ctx := context.Background()
+	err = db.PingContext(ctx)
 	if err != nil {
 		fields["value"] = "0"
 		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
@@ -192,7 +201,8 @@ func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
 		fields["value"] = "1"
 		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
 	}
-	defer conn.Close()
+
+	defer db.Close()
 	return nil
 }
 
