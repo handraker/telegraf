@@ -253,7 +253,7 @@ func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
 
 	db, err := sql.Open("mssql", server)
 	if err != nil {
-		fields["value"] = "0"
+		fields["value"] = 0
 		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
 		return err
 	}
@@ -261,11 +261,11 @@ func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
 	ctx := context.Background()
 	err = db.PingContext(ctx)
 	if err != nil {
-		fields["value"] = "0"
+		fields["value"] = 0
 		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
 		return err
 	} else {
-		fields["value"] = "1"
+		fields["value"] = 1
 		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
 	}
 
