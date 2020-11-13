@@ -37,6 +37,8 @@ func (s *MemStats) Gather(acc telegraf.Accumulator) error {
 		"used":              vm.Used,
 		"used_percent":      100 * float64(vm.Used) / float64(vm.Total),
 		"available_percent": 100 * float64(vm.Available) / float64(vm.Total),
+		"buffered":          vm.Buffers,
+		"cached":            vm.Cached,
 	}
 
 	switch s.platform {
