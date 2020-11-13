@@ -282,6 +282,18 @@ FROM sys.dm_os_schedulers AS s'
 EXEC sp_executesql @SqlStatement
 `
 
+const sqlServerLogBackupSize string = `
+SET DEADLOCK_PRIORITY -10;
+DECLARE @TmpTable TABLE (
+    size NUMERIC
+)
+INSERT INTO @TmpTable EXEC sp_MSforeachdb 'USE [?]; SELECT log_space_in_bytes_since_last_backup FROM [?].[sys].[dm_db_log_space_usage]';
+SELECT 'sqlserver_expected_log_backup_size' AS [measurement]
+	,REPLACE(@@SERVERNAME,'\',':') AS [sql_instance]
+	,SUM(size) AS size
+FROM @TmpTable
+`
+
 const sqlServerPerformanceCounters string = `
 SET DEADLOCK_PRIORITY -10;
 IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/

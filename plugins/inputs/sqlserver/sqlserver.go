@@ -150,6 +150,7 @@ func initQueries(s *SQLServer) error {
 		queries["AzureSQLMIRequests"] = Query{ScriptName: "AzureSQLMIRequests", Script: sqlAzureMIRequests, ResultByRow: false}
 		queries["AzureSQLMISchedulers"] = Query{ScriptName: "AzureSQLMISchedulers", Script: sqlAzureMISchedulers, ResultByRow: false}
 	} else if s.DatabaseType == "SQLServer" { //These are still V2 queries and have not been refactored yet.
+		queries["SQLServerLogBackupSize"] = Query{ScriptName: "SQLServerLogBackupSize", Script: sqlServerLogBackupSize, ResultByRow: false}
 		queries["SQLServerPerformanceCounters"] = Query{ScriptName: "SQLServerPerformanceCounters", Script: sqlServerPerformanceCounters, ResultByRow: false}
 		queries["SQLServerWaitStatsCategorized"] = Query{ScriptName: "SQLServerWaitStatsCategorized", Script: sqlServerWaitStatsCategorized, ResultByRow: false}
 		queries["SQLServerDatabaseIO"] = Query{ScriptName: "SQLServerDatabaseIO", Script: sqlServerDatabaseIO, ResultByRow: false}
@@ -168,6 +169,7 @@ func initQueries(s *SQLServer) error {
 		// Decide if we want to run version 1 or version 2 queries
 		if s.QueryVersion == 2 {
 			log.Println("W! DEPRECATION NOTICE: query_version=2 is being deprecated in favor of database_type.")
+			queries["SQLServerLogBackupSize"] = Query{ScriptName: "SQLServerLogBackupSize", Script: sqlServerLogBackupSize, ResultByRow: false}
 			queries["PerformanceCounters"] = Query{ScriptName: "PerformanceCounters", Script: sqlPerformanceCountersV2, ResultByRow: true}
 			queries["WaitStatsCategorized"] = Query{ScriptName: "WaitStatsCategorized", Script: sqlWaitStatsCategorizedV2, ResultByRow: false}
 			queries["DatabaseIO"] = Query{ScriptName: "DatabaseIO", Script: sqlDatabaseIOV2, ResultByRow: false}
@@ -230,6 +232,7 @@ func (s *SQLServer) Gather(acc telegraf.Accumulator) error {
 	var wg sync.WaitGroup
 
 	for _, serv := range s.Servers {
+		acc.AddError(s.checkServer(serv, acc))
 		for _, query := range s.queries {
 			wg.Add(1)
 			go func(serv string, query Query) {
@@ -240,6 +243,32 @@ func (s *SQLServer) Gather(acc telegraf.Accumulator) error {
 	}
 
 	wg.Wait()
+	return nil
+}
+
+func (s *SQLServer) checkServer(server string, acc telegraf.Accumulator) error {
+	var fields = make(map[string]interface{})
+	var tags = make(map[string]string)
+
+	db, err := sql.Open("mssql", server)
+	if err != nil {
+		fields["value"] = "0"
+		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
+		return err
+	}
+
+	ctx := context.Background()
+	err = db.PingContext(ctx)
+	if err != nil {
+		fields["value"] = "0"
+		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
+		return err
+	} else {
+		fields["value"] = "1"
+		acc.AddFields("sqlserver_connection_is_alive", fields, tags, time.Now())
+	}
+
+	defer db.Close()
 	return nil
 }
 
